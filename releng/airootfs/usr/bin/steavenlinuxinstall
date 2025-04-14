@@ -126,7 +126,7 @@ mount $EFI_PART /mnt/boot
 
 # Step 6: Install base packages
 msg "Installing base packages"
-pacstrap -K -P /mnt SteavenSettings SteavenLinuxName base base-devel git
+pacstrap -K -P /mnt chaotic-mirrorlist chaotic-keyring SteavenSettings SteavenLinuxName base base-devel git
 
 # Step 7: Generate fstab
 msg "Generating fstab"
