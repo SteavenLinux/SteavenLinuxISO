@@ -197,5 +197,5 @@ pacman -S --noconfirm $DE
 systemctl enable sddm
 systemctl enable NetworkManager
 
-pacman -Sy --noconfirm firefox
+pacman -Sy --noconfirm librewolf
 EOF
