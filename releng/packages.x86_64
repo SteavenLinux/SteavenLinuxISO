@@ -128,7 +128,10 @@ xfsprogs
 xl2tpd
 zsh
 bash
+
 fastfetch
 SteavenSettings
 SteavenLinuxName
 wget
+chaotic-keyring
+chaotic-mirrorlist
