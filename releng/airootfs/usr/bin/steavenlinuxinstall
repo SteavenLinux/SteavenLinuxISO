@@ -6,30 +6,26 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-# Function to prompt for input with a default value and limit the choices to only two valid options
-function prompt_de_choice() {
-    local prompt_message="$1"
-    local default_value="$2"
-    local valid_choices=("SteavenLinux-plasma-meta" "SteavenLinux-gnome-meta")
-    local user_input=""
-
-    while true; do
-        read -p "$prompt_message [$default_value]: " user_input
-        user_input="${user_input:-$default_value}"  # Use default if no input is provided
-        # Check if the input is one of the valid choices
-        if [[ " ${valid_choices[*]} " == *" $user_input "* ]]; then
-            echo "$user_input"
-            break
-        else
-            echo "Invalid choice. Please enter either 'SteavenLinux-plasma-meta' or 'SteavenLinux-gnome-meta'."
-        fi
-    done
+# Function to print messages
+function msg() {
+    echo -e "\n=== $1 ===\n"
 }
+
+# Step 1: Connect to the internet
+msg "Connecting to the internet"
+# Use iwctl for Wi-Fi or ensure you are connected via Ethernet
+# Uncomment and edit the following line to connect to Wi-Fi
+# iwctl station device connect SSID
+until curl -fsS --max-time 5 https://archlinux.org >/dev/null 2>&1; do
+    sleep 2
+done
+msg "Internet connection established"
 
 
 # fixing pacman
 pacman-key --init
-pacman-key --recv-keys 5D47A0A4882E9619CCF7D0A57FD4F55D1E0AA9CA
+pacman-key --populate archlinux
+pacman-key --recv-keys 5D47A0A4882E9619CCF7D0A57FD4F55D1E0AA9CA --keyserver keyserver.ubuntu.com
 pacman-key --lsign-key 5D47A0A4882E9619CCF7D0A57FD4F55D1E0AA9CA
 
 # Default Variables
@@ -40,7 +36,7 @@ DEFAULT_HOSTNAME="SteavenLinux"
 DEFAULT_TIMEZONE="Africa/Cairo"
 DEFAULT_LOCALE="en_US.UTF-8"
 DEFAULT_LOCALE2="ar_EG.UTF-8"
-DEFAULT_DE="SteavenLinux-plasma-meta"
+DEFAULT_DE="SteavenLinux-gnome-meta"
 DEFAULT_USERNAME="steavengameryt"
 CACHYOS_REPOS="yes"
 
@@ -68,6 +64,25 @@ function prompt_yes_no() {
         fi
     done
 }
+# Function to prompt for input with a default value and limit the choices to only two valid options
+function prompt_de_choice() {
+    local prompt_message="$1"
+    local default_value="$2"
+    local valid_choices=("SteavenLinux-plasma-meta" "SteavenLinux-gnome-meta")
+    local user_input=""
+
+    while true; do
+        read -p "$prompt_message [$default_value]: " user_input
+        user_input="${user_input:-$default_value}"  # Use default if no input is provided
+        # Check if the input is one of the valid choices
+        if [[ " ${valid_choices[*]} " == *" $user_input "* ]]; then
+            echo "$user_input"
+            break
+        else
+            echo "Invalid choice. Please enter either 'SteavenLinux-plasma-meta' or 'SteavenLinux-gnome-meta'."
+        fi
+    done
+}
 
 # Prompt for user input
 DISK=$(prompt_input "Enter the target disk" "$DEFAULT_DISK")
@@ -90,18 +105,6 @@ read -s -p "Enter the user password: " USER_PASSWORD
 echo
 
 
-
-# Function to print messages
-function msg() {
-    echo -e "\n=== $1 ===\n"
-}
-
-# Step 1: Connect to the internet
-msg "Connecting to the internet"
-# Use iwctl for Wi-Fi or ensure you are connected via Ethernet
-# Uncomment and edit the following line to connect to Wi-Fi
-# iwctl station device connect SSID
-
 # Step 2: Update the system clock
 msg "Updating the system clock"
 timedatectl set-ntp true
@@ -109,9 +112,9 @@ timedatectl set-ntp true
 # Step 3: Partition the disk
 msg "Partitioning the disk"
 parted $DISK mklabel gpt
-parted $DISK mkpart primary fat32 1MiB 1021MiB
+parted $DISK mkpart primary fat32 1MiB 2049MiB
 parted $DISK set 1 esp on
-parted $DISK mkpart primary ext4 1021MiB 100%
+parted $DISK mkpart primary ext4 2049MiB 100%
 
 # Step 4: Format the partitions
 msg "Formatting the partitions"
@@ -127,6 +130,8 @@ mount $EFI_PART /mnt/boot
 # Step 6: Install base packages
 msg "Installing base packages"
 pacstrap -K -P /mnt chaotic-mirrorlist chaotic-keyring SteavenSettings SteavenLinuxName base base-devel git
+mkdir -p /etc/pacman.d/
+cp /etc/pacman.d/steavenrepo-mirrorlist /mnt/etc/pacman.d/steavenrepo-mirrorlist 
 
 # Step 7: Generate fstab
 msg "Generating fstab"
@@ -136,9 +141,16 @@ genfstab -U /mnt >> /mnt/etc/fstab
 msg "Entering the new system"
 arch-chroot /mnt /bin/bash <<EOF
 
+# Function to print messages
+function msg() {
+    echo -e "\n=== $1 ===\n"
+}
+
 pacman-key --init
-pacman-key --recv-keys 5D47A0A4882E9619CCF7D0A57FD4F55D1E0AA9CA
+pacman-key --populate archlinux
+pacman-key --recv-keys 5D47A0A4882E9619CCF7D0A57FD4F55D1E0AA9CA --keyserver keyserver.ubuntu.com
 pacman-key --lsign-key 5D47A0A4882E9619CCF7D0A57FD4F55D1E0AA9CA
+
 
 if [[ "$CACHYOS_REPOS" == "yes" ]]; then
     pacman -Sy --noconfirm wget
@@ -156,7 +168,7 @@ fi
 if [[ "$CACHYOS_REPOS" == "yes" ]]; then
     pacman -Syu --noconfirm base base-devel git linux-cachyos linux-cachyos-headers linux-firmware efibootmgr plymouth flatpak mkinitcpio
 else
-    pacman -Sy --noconfirm base base-devel git linux-zen linux-zen-headers linux-firmware efibootmgr plymouth flatpak mkinitcpio
+    pacman -Syu --noconfirm base base-devel git linux-zen linux-zen-headers linux-firmware efibootmgr plymouth flatpak mkinitcpio
 fi
 
 # Step 9: Set the timezone
@@ -194,7 +206,13 @@ grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
 grub-mkconfig -o /boot/grub/grub.cfg
 
 pacman -S --noconfirm $DE
-systemctl enable sddm
+
+if [[ "$DE" == "SteavenLinux-gnome-meta" ]]; then
+    systemctl enable gdm.service
+elif [[ "$DE" == "SteavenLinux-plasma-meta" ]]; then
+    systemctl enable plasmalogin.service
+fi
+
 systemctl enable NetworkManager
 
 pacman -Sy --noconfirm librewolf
