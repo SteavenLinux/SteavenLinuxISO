@@ -148,7 +148,7 @@ bash
 fastfetch
 SteavenSettings
 SteavenLinuxName
-SteavenInstaller
+SteavenLinuxInstaller
 wget
 chaotic-keyring
 chaotic-mirrorlist

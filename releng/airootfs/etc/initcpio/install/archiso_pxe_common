@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+build() {
+    # These drivers require firmware that is not distributed by the Arch Linux
+    # firmware packages.  They cannot be used for PXE boot without separately
+    # supplied firmware, so do not add them to the initramfs.
+    add_checked_modules \
+        -f '(irda|phy|wimax|wireless|ppp_|plip|pppoe|ieee802154/adf7242|ethernet/sun/cassini|can/softing/softing_cs)' \
+        '/drivers/net/'
+
+    add_runscript
+
+    add_binary /usr/lib/initcpio/ipconfig /usr/bin/ipconfig
+
+    # Add hosts support files+dns
+    add_binary /usr/lib/libnss_files.so.2
+    add_binary /usr/lib/libnss_dns.so.2
+
+    printf 'hosts: files dns\n' | add_file - '/etc/nsswitch.conf' 644
+}
+
+help() {
+    cat <<HELPEOF
+  This hook loads the necessary modules for boot via PXE.
+HELPEOF
+}
